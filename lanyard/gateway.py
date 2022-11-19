@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from aiohttp import ClientSession, ClientWebSocketResponse
