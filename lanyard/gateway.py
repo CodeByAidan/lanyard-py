@@ -1,6 +1,7 @@
 import asyncio
 import json
-from typing import TYPE_CHECKING, Callable, Any, Awaitable
+import logging
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from aiohttp import ClientSession, ClientWebSocketResponse
 
@@ -20,9 +21,10 @@ class GatewayClient:
     if TYPE_CHECKING:
         ws: ClientWebSocketResponse
 
-    def __init__(self, *ids) -> None:
-        self.ids = [str(id) for id in ids]
+    def __init__(self, ids: list[int]) -> None:
+        self.ids = ids
         self._loop = asyncio.get_event_loop()
+        self.session: ClientSession = None  # This gets filled in somewhere else.
         self.__event_function: coro = None
         self.__ready_function: coro = None
 
@@ -31,14 +33,29 @@ class GatewayClient:
             await self.ws.send_json({"op": Opcodes.HEARTBEAT, "d": None})
             await asyncio.sleep(self.heartbeat_interval / 1000)
 
+    def message(self):
+        def wrapper(func: coro):
+            self.__event_function = func
+
+        return wrapper
+
+    def ready(self):
+        def wrapper(func: coro):
+            self.__ready_function = func
+
+        return wrapper
+
     async def _initilize(self, data):
         await self.ws.send_json(
-            {"op": Opcodes.INITIALIZE, "d": {"subscribe_to_ids": self.ids}}
+            {
+                "op": Opcodes.INITIALIZE,
+                "d": {"subscribe_to_ids": [str(id) for id in self.ids]},
+            }
         )
 
         self.heartbeat_interval = data["heartbeat_interval"]
         self._loop.create_task(self.heartbeat())
-        
+
     def handle_events(self, data):
         if data["t"] == "INIT_STATE":
             self._loop.create_task(self.__ready_function(data["d"]))
@@ -73,6 +90,6 @@ class GatewayClient:
         await self.ws.close()
         await self.session.close()
 
-    async def start(self):
+    def start(self):
 
         self._loop.run_until_complete(self.connect())

@@ -1,4 +1,5 @@
-from typing import TypedDict, Optional
+from typing import Optional, TypedDict
+
 
 class PartialUser(TypedDict):
     username: str
@@ -17,22 +18,20 @@ class PartialPresence(TypedDict):
     activities: list
     discord_status: str
 
+
 class Presence:
     def __init__(self, data: PartialPresence):
         self._update(data)
 
     def _update(self, data: PartialPresence):
-        self.username = data['discord_user']['username']
-        self.public_flags = data['discord_user']['public_flags']
-        self.id = data['discord_user']['id']
-        self.discriminator = data['discord_user']['discriminator']
-        self.bot = data['discord_user']['bot']
-        self.avatar = data['discord_user']['avatar']
-        self.activites = data['activities']
-        self.spotify = data['spotify']
-        self.currently_listening = data['listening_to_spotify']
-        self.kv = data['kv']
-        self.staus = data['discord_status']
-        
-
-
+        self.username = data["discord_user"]["username"]
+        self.public_flags = data["discord_user"]["public_flags"]
+        self.id = data["discord_user"]["id"]
+        self.discriminator = data["discord_user"]["discriminator"]
+        self.bot = data["discord_user"]["bot"]
+        self.avatar = data["discord_user"]["avatar"]
+        self.activites = data["activities"]
+        self.spotify = data["spotify"]
+        self.currently_listening = data["listening_to_spotify"]
+        self.kv = data["kv"]
+        self.staus = data["discord_status"]
