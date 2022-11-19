@@ -1,14 +1,15 @@
-from lanyard.gateway import GatewayClient
+from lanyard import Client
+import asyncio
 
-wss = GatewayClient(894794517079793704)
+client = Client("894794517079793704")
 
-@wss.message()
-async def yummers(data):
-    print(f"Got message!!\n{data}")
+@client.ready()
+async def ready(msg):
+    print( "ho")
 
-@wss.ready()
-async def ready(data):
-    print("Ready :)")
+async def main():
+    await client.start()
 
+    print(await client.fetch_user_data(894794517079793704))
 
-wss.start()
+asyncio.run(main())

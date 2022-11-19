@@ -38,19 +38,7 @@ class GatewayClient:
 
         self.heartbeat_interval = data["heartbeat_interval"]
         self._loop.create_task(self.heartbeat())
-
-    def message(self):
-        def wrapper(func: coro):
-            self.__event_function = func
-
-        return wrapper
-
-    def ready(self):
-        def wrapper(func: coro):
-            self.__ready_function = func
-
-        return wrapper
-
+        
     def handle_events(self, data):
         if data["t"] == "INIT_STATE":
             self._loop.create_task(self.__ready_function(data["d"]))
@@ -85,6 +73,6 @@ class GatewayClient:
         await self.ws.close()
         await self.session.close()
 
-    def start(self):
+    async def start(self):
 
         self._loop.run_until_complete(self.connect())
