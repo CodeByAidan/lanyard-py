@@ -34,4 +34,7 @@ class Presence:
         self.spotify = data["spotify"]
         self.currently_listening = data["listening_to_spotify"]
         self.kv = data["kv"]
-        self.staus = data["discord_status"]
+        self.status = data["discord_status"]
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: username: {self.username!r} id: {self.id} status: {self.status!r}>"

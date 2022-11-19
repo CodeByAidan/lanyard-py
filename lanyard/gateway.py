@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from aiohttp import ClientSession, ClientWebSocketResponse
 
+from .models import Presence
+
 GW_URL = "wss://api.lanyard.rest/socket"
 
 coro = Callable[[Any, Any], Awaitable[Any]]
@@ -20,12 +22,13 @@ class GatewayClient:
     if TYPE_CHECKING:
         ws: ClientWebSocketResponse
 
-    def __init__(self, ids: list[int]) -> None:
-        self.ids = ids
+    def __init__(self, *ids: str) -> None:
+        self.ids = [str(id) for id in ids]
         self._loop = asyncio.get_event_loop()
         self.session: ClientSession = None  # This gets filled in somewhere else.
         self.__event_function: coro = None
         self.__ready_function: coro = None
+        self._last_status = {}
 
     async def heartbeat(self):
         while True:
@@ -48,7 +51,7 @@ class GatewayClient:
         await self.ws.send_json(
             {
                 "op": Opcodes.INITIALIZE,
-                "d": {"subscribe_to_ids": [str(id) for id in self.ids]},
+                "d": {"subscribe_to_ids": self.ids},
             }
         )
 
@@ -57,9 +60,18 @@ class GatewayClient:
 
     def handle_events(self, data):
         if data["t"] == "INIT_STATE":
-            self._loop.create_task(self.__ready_function(data["d"]))
+            ids = [data['d'][id] for id in self.ids]
+            for user in ids:
+                self._last_status[user['discord_user']['id']] = user['discord_status']
+
+            self._loop.create_task(self.__ready_function(data['d']))
+
+            del ids
         else:
-            self._loop.create_task(self.__event_function(data["d"]))
+            if data['d']['discord_status'] == self._last_status[data['d']['discord_user']['id']]:
+                return 
+
+            self._loop.create_task(self.__event_function(data['d']))
 
     async def connect(self):
         self.session = ClientSession()
@@ -90,5 +102,4 @@ class GatewayClient:
         await self.session.close()
 
     def start(self):
-
         self._loop.run_until_complete(self.connect())
