@@ -8,7 +8,7 @@ from .models import Presence
 
 GW_URL = "wss://api.lanyard.rest/socket"
 
-coro = Callable[[Any, Any], Awaitable[Any]]
+CoroFunc = Callable[[Any, Any], Awaitable[Any]]
 
 
 class Opcodes:
@@ -22,12 +22,11 @@ class GatewayClient:
     if TYPE_CHECKING:
         ws: ClientWebSocketResponse
 
-    def __init__(self, *ids: str) -> None:
+    def __init__(self, ids: list[int]) -> None:
         self.ids = [str(id) for id in ids]
         self._loop = asyncio.get_event_loop()
-        self.session: ClientSession = None  # This gets filled in somewhere else.
-        self.__event_function: coro = None
-        self.__ready_function: coro = None
+        self.__event_function: CoroFunc = None
+        self.__ready_function: CoroFunc = None
         self._last_status = {}
 
     async def heartbeat(self):
@@ -36,13 +35,13 @@ class GatewayClient:
             await asyncio.sleep(self.heartbeat_interval / 1000)
 
     def message(self):
-        def wrapper(func: coro):
+        def wrapper(func: CoroFunc):
             self.__event_function = func
 
         return wrapper
 
     def ready(self):
-        def wrapper(func: coro):
+        def wrapper(func: CoroFunc):
             self.__ready_function = func
 
         return wrapper
@@ -65,13 +64,12 @@ class GatewayClient:
                 self._last_status[user['discord_user']['id']] = user['discord_status']
 
             self._loop.create_task(self.__ready_function(data['d']))
-
             del ids
         else:
             if data['d']['discord_status'] == self._last_status[data['d']['discord_user']['id']]:
-                return 
-
-            self._loop.create_task(self.__event_function(data['d']))
+                return
+        
+            self._loop.create_task(self.__event_function(Presence(data['d'])))
 
     async def connect(self):
         self.session = ClientSession()
