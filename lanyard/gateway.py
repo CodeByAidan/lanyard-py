@@ -65,10 +65,10 @@ class GatewayClient:
 
             self._loop.create_task(self.__ready_function(data['d']))
             del ids
+        elif data['d']['discord_status'] == self._last_status[data['d']['discord_user']['id']]:
+            return
+
         else:
-            if data['d']['discord_status'] == self._last_status[data['d']['discord_user']['id']]:
-                return
-        
             self._loop.create_task(self.__event_function(data['d']))
 
     async def connect(self):
